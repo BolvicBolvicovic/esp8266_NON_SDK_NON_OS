@@ -1,4 +1,4 @@
-TARGET	= rtos
+TARGET	= rtos.elf
 
 PORT	= /dev/ttyUSB0
 BAUDRATE= 115200
@@ -48,12 +48,12 @@ OBJS	:= $(addprefix $(OBJDIR)/, $(notdir $(CSRCS:.c=.o))) \
 	$(addprefix $(OBJDIR)/, $(notdir $(ASRCs:.s=.o))) \
 	$(addprefix $(OBJDIR)/, $(notdir $(ASRCS:.S=.o)))
 
-all: $(OBJDIR) $(ODIR)/$(TARGET).bin
+all: $(OBJDIR) $(ODIR)/$(TARGET)-0x00000.bin
 
-$(ODIR)/$(TARGET).bin: $(ODIR)/$(TARGET).elf
-	$(OBJCPY) -O binary $< $@
+$(ODIR)/$(TARGET)-0x00000.bin: $(ODIR)/$(TARGET)
+	$(ESPTOOL) --chip esp8266 elf2image $<
 
-$(ODIR)/$(TARGET).elf: $(OBJS)
+$(ODIR)/$(TARGET): $(OBJS)
 	$(CC) $(LFLAGS) -o $@ $^
 
 $(OBJDIR)/%.o: %.c
@@ -88,7 +88,7 @@ $(ODIR):
 
 .PHONY: all re clean flash monitor
 
-flash: $(ODIR)/$(TARGET).bin
+flash: $(ODIR)/$(TARGET)-0x00000.bin
 	$(ESPTOOL) -c esp8266 -p $(PORT) -b $(BAUDRATE) \
 	write_flash 0x00000 $<
 
@@ -96,7 +96,7 @@ serial:
 	sudo minicom -D $(PORT) -b $(BAUDRATE)
 
 clean:
-	rm -rf $(ODIR)
+	rm -rf $(ODIR)/
 
 re: clean all
 
