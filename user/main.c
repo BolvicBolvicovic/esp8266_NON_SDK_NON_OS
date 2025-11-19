@@ -11,7 +11,7 @@ main(void)
 
 	ets_printf("\n\nLet's get started!\n");
 
-	for (;;)
+	while (1)
 	{
 		GPIO_OUT_CLR_REG = BIT(PIN_LED);
 		ets_delay_us(500000);

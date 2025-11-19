@@ -5,7 +5,7 @@ BAUDRATE= 115200
 ESPTOOL	= esptool.py
 
 CC_DIR	= ${HOME}/.esp/tools/xtensa-lx106-elf/bin
-OBJCPY	= $(CC_DIR)/xtensa-lx106-elf-objcopy
+OBJDUMP	= $(CC_DIR)/xtensa-lx106-elf-objdump
 CC	= $(CC_DIR)/xtensa-lx106-elf-gcc
 CXX	= $(CC_DIR)/xtensa-lx106-elf-g++
 CFLAGS	= \
@@ -88,7 +88,7 @@ $(OBJDIR): $(ODIR)
 $(ODIR):
 	@mkdir -p $(ODIR)
 
-.PHONY: all re clean flash monitor
+.PHONY: all re clean flash monitor serial dump
 
 flash: $(ODIR)/$(TARGET)-0x00000.bin
 	$(ESPTOOL) -c esp8266 -p $(PORT) -b $(BAUDRATE) \
@@ -102,3 +102,5 @@ clean:
 
 re: clean all
 
+dump: $(ODIR)/$(TARGET)
+	$(OBJDUMP) -d $< > rtos.asm

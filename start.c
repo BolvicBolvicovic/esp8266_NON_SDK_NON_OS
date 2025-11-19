@@ -7,6 +7,7 @@ extern u32	_bss_end;
 void
 call_user_start1()
 {
+	// TODO: This setup is for 80 MHz CPU frequency. Add support for other frequencies.
 	rom_i2c_writeReg(103, 4, 1, 0x88);
 	rom_i2c_writeReg(103, 4, 2, 0x91);
  	ets_update_cpu_frequency(CPU_FREQ_MHZ);
@@ -16,7 +17,6 @@ call_user_start1()
 	PIN_PULLUP_DISABLE(PERI_IO_MUX_U0TXD_U);
 	PIN_FUNC_SELECT(PERI_IO_MUX_U0TXD_U, 0);
 	
-	uart_div_modify(0, (CPU_FREQ_MHZ * 1000000) / BAUDRATE);
-
+	uart_div_modify(0, (CPU_FREQ_MHZ * 1000000u) / BAUDRATE);
 	main();
 }
