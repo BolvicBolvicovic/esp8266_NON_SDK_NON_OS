@@ -3,12 +3,11 @@
 INTERNAL void
 tests_arena_alloc_basic_cycle()
 {
-	Arena*	arena = arena_new(0x1000);
+	Arena*	arena = arena_new();
 	u8*	start = arena->start;
 	u8*	end = arena->end;
 	u32	mark = arena->sp;
 
-	assert(_heap_start);
 	assert(start);
 	assert(end);
 	assert((uptr)start != (uptr)arena);
@@ -32,39 +31,34 @@ tests_arena_alloc_basic_cycle()
 	assert(arena->sp == 0);
 	assert(arena->start == start);
 	assert(arena->end == end);
-}
-
-INTERNAL void
-tests_arena_alloc_null_size_init_create()
-{
-	Arena*	arena = arena_new(0);
-	assert(arena == 0);
+	assert(arena_delete(arena));
 }
 
 INTERNAL void
 tests_arena_alloc_null_push()
 {
-	Arena*	arena = arena_new(0x1000);
+	Arena*	arena = arena_new();
 	s32*	s32_array = (s32*)arena_push(arena, 0);
 	assert(s32_array == 0);
+	assert(arena_delete(arena));
 }
 
 INTERNAL void
 tests_arena_alloc_pop_bigger_mark()
 {
-	Arena*	arena = arena_new(0x1000);
+	Arena*	arena = arena_new();
 	arena_push(arena, sizeof(s32) * 10);
 	u32	mark = arena->sp;
 	
 	arena_pop(arena, mark + 1);
 	assert(arena->sp == mark); // Unchanged
+	assert(arena_delete(arena));
 }
 
 void
 tests_arena_alloc(void)
 {
 	tests_arena_alloc_basic_cycle();
-	tests_arena_alloc_null_size_init_create();
 	tests_arena_alloc_null_push();
 	tests_arena_alloc_pop_bigger_mark();
 }

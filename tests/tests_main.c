@@ -3,11 +3,8 @@
 int
 main(void)
 {
-	_heap_start = (u8*)malloc(TESTER_HEAP_SIZE);
-
-	assert(_heap_start);
-
 	tests_arena_alloc();
+	tests_memory();
 
 	return 0;
 }

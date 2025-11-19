@@ -35,7 +35,7 @@ LFLAGS	= \
 	-L$(LD_DIR) \
 	-T$(LD_FILE)
 
-INC		= -I./lib
+INC	= -I./lib
 
 CSRCS	?= $(wildcard *.c ./user/*.c)
 CXXSRCS	?= $(wildcard *.cpp ./user/*.cpp)
@@ -99,6 +99,7 @@ serial:
 
 clean:
 	rm -rf $(ODIR)/
+	make -C ./lib clean
 
 re: clean all
 
@@ -114,6 +115,7 @@ TCFLAGS = \
 	-Wall \
 	-Wextra \
 	$(INC)
+
 TCXXFLAGS = $(TCFLAGS)
 TLFLAGS = -m32
 TTARGET = exec_tests
@@ -130,7 +132,8 @@ TOBJS	:= $(addprefix $(TOBJDIR)/, $(notdir $(TCSRCS:.c=.o))) \
 	$(addprefix $(TOBJDIR)/, $(notdir $(TASRCS:.S=.o)))
 
 $(TDIR)/$(TTARGET): $(TOBJS)
-	$(TCC) $(TLFLAGS) -o $@ $^
+	make -C ./lib tests
+	$(TCC) $(TLFLAGS) -o $@ $^ -L./lib -lrtos_tests 
 
 $(TOBJDIR)/%.o: $(TDIR)/%.c
 	$(TCC) $(TCFLAGS) -o $@ -c $<
@@ -152,3 +155,4 @@ tests: $(TOBJDIR) $(TDIR)/$(TTARGET)
 
 clean_tests:
 	rm -rf $(TOBJDIR) $(TDIR)/$(TTARGET)
+	make -C ./lib clean_tests

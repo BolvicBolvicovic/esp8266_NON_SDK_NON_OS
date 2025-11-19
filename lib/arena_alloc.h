@@ -3,15 +3,7 @@
 
 // TODO: When multitasking will be implemented, maybe make this task-safe
 
-#include "c_types.h"
-
-#ifdef UNIT_TESTS
-extern u8*	_heap_start;
-#define ARENA_HEAP_BASE	((u8*)(ALIGN_UP_4((uptr)_heap_start)))
-#else
-extern u8	_heap_start;
-#define ARENA_HEAP_BASE	((u8*)(ALIGN_UP_4((uptr)&_heap_start)))
-#endif
+#include "memory.h"
 
 #define ALIGN_DOWN_4(a)	((a) & ~3)
 #define ALIGN_UP_4(a)	(((a) + 3) & ~3)
@@ -25,13 +17,10 @@ extern u8	_heap_start;
  * USAGE
  *
  * Init:
- * Initalize an arena by calling arena_new(size).
+ * Initalize an arena by calling arena_new(size). Allocate the arena on the stack.
  *
- * Alloc:
- * If you want to create a second arena, you need to pass the first arena you allocated as a parameter to arena_create.
- * This avoids handling the heap as much as possible.
- * That means that future allocator implementations might need to use the same idea.
- * However, this is not a fixed idea and is subject for refactoring with the creation of a minimal heap managment API.
+ * Create:
+ * Create an arena from an array of bytes by calling arena_from_ptr.
  * 
  * Push and pop:
  * Push reserves size space and aligns up that size so that every stucture in the arena are aligned.
@@ -71,23 +60,23 @@ typedef struct
 } Arena;
 
 INTERNAL inline Arena*
-arena_from_ptr(void* ptr, u32 size)
+arena_from_ptr(void* ptr)
 {
-	if (size <= sizeof(Arena)) return 0;
+	if (!ptr) return 0;
 
-	Arena* new_arena = ptr ? (Arena*)ptr : (Arena*)ARENA_HEAP_BASE;
+	Arena* new_arena = ptr;
 
 	new_arena->start = (u8*)((uptr)new_arena + sizeof(Arena));
-	new_arena->end	= new_arena->start + ALIGN_UP_4(size + sizeof(Arena));
+	new_arena->end	= (u8*)((uptr)ptr + MEM_BLOCK_SIZE);
 	new_arena->sp 	= 0;
 
 	return new_arena;
 }
 
 INTERNAL inline Arena* ALWAYS_INLINE_ATTR
-arena_new(u32 size)
+arena_new(void)
 {
-	return arena_from_ptr(0, size);
+	return arena_from_ptr(memory_allocate_block());
 }
 
 INTERNAL inline u8*
@@ -109,5 +98,12 @@ arena_pop(Arena* arena, u32 mark)
 	if (!arena || mark > arena->sp) return;
 	arena->sp = mark;
 }
+
+INTERNAL inline s32 ALWAYS_INLINE_ATTR
+arena_delete(Arena* arena)
+{
+	return memory_free_block((void*)arena);
+}
+
 
 #endif
