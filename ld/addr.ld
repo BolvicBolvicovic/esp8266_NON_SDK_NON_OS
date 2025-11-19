@@ -320,6 +320,7 @@ PROVIDE ( strncpy = 0x4000c0a0 );
 PROVIDE ( strstr = 0x4000e1e0 );
 PROVIDE ( timer_insert = 0x40002c64 );
 PROVIDE ( uartAttach = 0x4000383c );
+PROVIDE ( uart_div_modify = 0x400039d8 );
 PROVIDE ( uart_baudrate_detect = 0x40003924 );
 PROVIDE ( uart_buff_switch = 0x400038a4 );
 PROVIDE ( uart_rx_intr_handler = 0x40003bbc );

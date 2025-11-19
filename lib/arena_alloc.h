@@ -26,7 +26,7 @@ extern u8	_heap_start;
  * However, this is not a fixed idea and is subject for refactoring with the creation of a minimal heap managment API.
  * 
  * Push and pop:
- * Push copies an object 4 by 4 bytes. That implies that the object, its size and the destination are accordingly aligned.
+ * Push reserves size space and aligns up that size so that every stucture in the arena are aligned.
  * To use pop, you need to save the state of the stack pointer (.sp) 
  * before pushing to the arena and pass it as the mark argument to the macro.
  *
@@ -53,33 +53,17 @@ arena_create(Arena* prev, u32 size)
 
 #define ARENA_INIT(size)	(arena_create(0, size))
 
-INTERNAL inline void
+INTERNAL inline u8*
 arena_push(Arena* arena, void* object, u32 object_size)
 {
-	if (!arena || !object) return;
+	if (!arena || !object) return 0;
 	object_size	= ALIGN_UP_4(object_size);
-	if (object_size >= (uptr)arena->end - arena->sp) return;
-
-
-	// TODO: Use an optimized loop for unaliged copy
-	if ((uptr)object % 4 == 0)
-	{
-		u32*	src	= (u32*)object;
-		u32*	dst	= (u32*)(arena->start + arena->sp);
-		u32*	end	= (u32*)(arena->start + arena->sp + object_size);
-
-		for (; dst < end; dst++, src++) *dst = *src;
-	}
-	else
-	{
-		u8*	src	= (u8*)object;
-		u8*	dst	= arena->start + arena->sp;
-		u8*	end	= arena->start + arena->sp + object_size;
-
-		for (; dst < end; dst++, src++) *dst = *src;
-	}
+	if (object_size >= (uptr)arena->end - arena->sp) return 0;
 	
+	u8*	res = arena->start + arena->sp;
+
 	arena->sp	+= object_size;
+	return res;
 }
 
 // Note: arena MUST be of type Arena*
