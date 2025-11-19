@@ -5,7 +5,9 @@ main(void)
 {
 	_heap_start = (u8*)malloc(TESTER_HEAP_SIZE);
 
-	tests_arena_alloc_basic_cycle();
+	assert(_heap_start);
+
+	tests_arena_alloc();
 
 	return 0;
 }

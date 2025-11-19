@@ -1,6 +1,8 @@
 #ifndef ARENA_ALLOC_H
 #define ARENA_ALLOC_H
 
+// TODO: When multitasking will be implemented, maybe make this task-safe
+
 #include "c_types.h"
 
 #ifdef UNIT_TESTS
@@ -68,40 +70,43 @@ typedef struct
 	u32	sp;
 } Arena;
 
-INTERNAL inline Arena
+INTERNAL inline Arena*
 arena_create(Arena* prev, u32 size)
 {
-	Arena new_arena;
+	if (size <= sizeof(Arena)) return 0;
 
-	new_arena.start = prev ? prev->end : ARENA_HEAP_BASE;
-	new_arena.end	= new_arena.start + ALIGN_UP_4(size);
-	new_arena.sp 	= 0;
+	Arena* new_arena = prev ? (Arena*)prev->end : (Arena*)ARENA_HEAP_BASE;
+
+	new_arena->start = (u8*)((uptr)new_arena + sizeof(Arena));
+	new_arena->end	= new_arena->start + ALIGN_UP_4(size + sizeof(Arena));
+	new_arena->sp 	= 0;
 
 	return new_arena;
 }
 
-INTERNAL inline Arena ALWAYS_INLINE_ATTR
+INTERNAL inline Arena* ALWAYS_INLINE_ATTR
 arena_init(u32 size)
-{
+
 	return arena_create(0, size);
 }
 
 INTERNAL inline u8*
 arena_push(Arena* arena, u32 object_size)
 {
-	if (!arena) return 0;
-	object_size	= ALIGN_UP_4(object_size);
+	if (!arena || !object_size) return 0;
+	object_size = ALIGN_UP_4(object_size);
 	if (object_size >= (uptr)arena->end - arena->sp) return 0;
 	
 	u8*	res = arena->start + arena->sp;
 
-	arena->sp	+= object_size;
+	arena->sp += object_size;
 	return res;
 }
 
 INTERNAL inline void ALWAYS_INLINE_ATTR
 arena_pop(Arena* arena, u32 mark)
 {
+	if (!arena || mark > arena->sp) return;
 	arena->sp = mark;
 }
 
