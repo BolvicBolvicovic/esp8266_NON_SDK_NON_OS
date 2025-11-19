@@ -25,7 +25,7 @@ extern u8	_heap_start;
  * USAGE
  *
  * Init:
- * Initalize the first arena by calling arena_init(size).
+ * Initalize an arena by calling arena_new(size).
  *
  * Alloc:
  * If you want to create a second arena, you need to pass the first arena you allocated as a parameter to arena_create.
@@ -54,7 +54,7 @@ extern u8	_heap_start;
  * void
  * main(void)
  * {
- * 		Arena	my_arena = arena_init(0x1000); // 4kB
+ * 		Arena	my_arena = arena_new(0x1000); // 4kB
  *
  * 		some_func_that_needs_heap_allocation(&my_arena);
  *
@@ -71,11 +71,11 @@ typedef struct
 } Arena;
 
 INTERNAL inline Arena*
-arena_create(Arena* prev, u32 size)
+arena_from_ptr(void* ptr, u32 size)
 {
 	if (size <= sizeof(Arena)) return 0;
 
-	Arena* new_arena = prev ? (Arena*)prev->end : (Arena*)ARENA_HEAP_BASE;
+	Arena* new_arena = ptr ? (Arena*)ptr : (Arena*)ARENA_HEAP_BASE;
 
 	new_arena->start = (u8*)((uptr)new_arena + sizeof(Arena));
 	new_arena->end	= new_arena->start + ALIGN_UP_4(size + sizeof(Arena));
@@ -85,9 +85,9 @@ arena_create(Arena* prev, u32 size)
 }
 
 INTERNAL inline Arena* ALWAYS_INLINE_ATTR
-arena_init(u32 size)
-
-	return arena_create(0, size);
+arena_new(u32 size)
+{
+	return arena_from_ptr(0, size);
 }
 
 INTERNAL inline u8*
