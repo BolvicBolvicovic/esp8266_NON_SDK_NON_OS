@@ -5,7 +5,7 @@
 
 #define BIT(a)			(1 << (a))
 #define REG32(a)		(*(volatile u32*)(a))
-#define CPU_FREQ_MHZ	80
+#define CPU_FREQ_MHZ		80
 #define BAUDRATE		115200
 #define IRAM_ATTR		__attribute__((section(".iram1")))
 
@@ -13,7 +13,7 @@
 #define CLEAR_PERI_REG_MASK(reg, mask)	(REG32(reg) = REG32(reg) & (~(mask)))
 #define SET_PERI_REG_MASK(reg, mask)	(REG32(reg) = REG32(reg) | (mask))
 
-#define PERI_IO_MUX			0x60000800
+#define PERI_IO_MUX		0x60000800
 #define PERI_IO_MUX_FUNC	0x13
 #define PERI_IO_MUX_FUNC_S	4
 #define PERI_IO_MUX_PULLUP	BIT(7)
@@ -30,20 +30,20 @@
         REG32(pin_name) = v; \
     } while (0)
 
-#define GPIO_OUT_REG			REG32(0x60000300)
-#define GPIO_OUT_SET_REG		REG32(0x60000304)
-#define GPIO_OUT_CLR_REG		REG32(0x60000308)
-#define GPIO_ENABLE_REG			REG32(0x6000030C)
+#define GPIO_OUT_REG		REG32(0x60000300)
+#define GPIO_OUT_SET_REG	REG32(0x60000304)
+#define GPIO_OUT_CLR_REG	REG32(0x60000308)
+#define GPIO_ENABLE_REG		REG32(0x6000030C)
 
 #define UART_BASE_REG(u)        (0x60000000 + (u) * 0xF00)
 #define UART_FIFO(u)            (UART_BASE_REG(u) + 0x00)
 #define UART_STATUS(u)          (UART_BASE_REG(u) + 0x1C)
 #define UART_TXFIFO_CNT         0x000000FF
 #define UART_TXFIFO_CNT_S       16
-#define UART_STOP_BIT_NUM		3
-#define UART_STOP_BIT_NUM_S		4
-#define UART_PARITY_ENABLE		BIT(1)
-#define UART_PARITY			BIT(0)
+#define UART_STOP_BIT_NUM	3
+#define UART_STOP_BIT_NUM_S	4
+#define UART_PARITY_ENABLE	BIT(1)
+#define UART_PARITY		BIT(0)
 
 /* --- BOOTLOADER FUNCTIONS --- */
 
@@ -654,7 +654,220 @@ extern void	_xtos_unhandled_interrupt(void* arg);
 extern void	uart_tx_one_char(u8 c);
 extern void	uart_div_modify(u8 uart, u32 div);
 
+/* ROM TABLES */
+
+/* Name: _rom_store
+ * Address: 0x4000e388
+ * Description: table that seems to contain unreferenced code/data.
+ * */
+extern u32*	_rom_store;
+
+/* Name: _rom_store_table
+ * Address: 0x4000e328
+ * Description: table that seems to contain referenced code/data.
+ * */
+extern u32*	_rom_store_table;
+
 /* ROM FUNCTIONS */
+
+/* Name: phy_get_romfuncs
+ * Address: 0x40006b08
+ * Description: returns a pointer to the PHY ROM function table stored at 0x3fffc730.
+ * Note: PHY stands for Physical Layer and refers to the WiFi components and circuits that:
+ * 	- Transmit side:
+ * 		Converts digital data into analog radio frequency (RF) signals
+ * 		Modulates the carrier wave (OFDM for Wi-Fi)
+ * 		Amplifies and transmits through the antenna
+ * 	- Receive side:
+ * 		Receives RF signals from the antenna
+ * 		Amplifies and filters the signal
+ * 		Demodulates back to digital data
+ * 		Performs timing synchronization and channel estimation
+ * Functions are used by the WiFi hardware.
+ * */
+extern void*	phy_get_romfuncs(void);
+
+/* Name: rom_abs_temp
+ * Address: 0x400060c0
+ * Description: returns the absolute value a s32.
+ * */
+extern s32	rom_abs_temp(s32 value);
+
+/* Name: rom_ana_inf_gating_en
+ * Address: 0x40006b10
+ * Description: configures the analog interface gating for power management.
+ * If the interface is enabled:
+ * 	- writes config and flags to register 119 by calling a PHY write function at offset 156
+ * 	with the following signature:
+ * 		- void (*phy_write)(u8 reg, u8 block, u8 field, u8 mask, u8 value);
+ * Else:
+ * 	- sets basic gating control bits.
+ * It seems that config is split in 3 parts: bits 0-3, bits 4-11, bits 12-19.
+ * Same for flags: bits 0-7, bits 8-15, bits 16-19.
+ * */
+extern void	rom_ana_inf_gating_en(u32 enable, u32 config, u32 flags);
+
+/* Name: rom_cal_tos_v50
+ * Address: 0x40007a28
+ * Description: performs a TX output stage calibration for the WiFi PHY version 5.0.
+ * Note: DAC stands for Digital-to-Analog Converter.
+ * Uses a binary search algorithm to find the optimal calibration
+ * by reading back signal quality indicators from the hardware at register 0x60000d4c.
+ * If save_to_reg == true then save calibration to register 0x60009864.
+ * Saves values in result: [0] = dac1 and [1] = dac0.
+ * Returns save_to_reg (arg0).
+ * */
+extern bool	rom_cal_tos_v50(bool save_to_reg, u16 _unused, u32 delay_us, u32 iterations, u8* result);
+
+/* Name: rom_chip_50_set_channel
+ * Address: 0x40006f84
+ * Description: sets the channel for WiFi PHY version 5.0.
+ * channel must be between 0-14.
+ * Args 1 and 3-6 are passed to the PHY setup function at offset 128.
+ * Then, uses PHY functions in order at offsets:
+ * 	- 152 params(103,4,7,4) maybe a phy_write function
+ * 	- 124 params(1, retval<<8, 0x96000) 
+ * 	- then delays.
+ * Updates register 0x60009b14 by ORing it with (0x00005272 << 17) and (0x00006000)
+ * Then seem to do some operations on the channel.
+ * Then updates 0x600098a0 by ANDing it with () and ORing it with (*local0 10 first bits << 20) and (0x000fffff)
+ * */
+extern void	rom_chip_50_set_channel(
+		u8 channel, u16 arg1, bool does_conf, u16 arg3, u16 arg4, u16 arg5, u16 arg6);
+
+/* Name: rom_chip_v5_disable_cca
+ * Address: 0x400060d0
+ * Description: disables CCA for WiFi PHY version 5.0.
+ * Note: CCA stands for Clear Channel Assessment.
+ * Note: CSMA/CA stands for Carrier Sense Multiple Access with Collision Avoidance.
+ * CCA is used to sense if the channel is used for other transmissions to avoid collisions.
+ * Sets bit 28 of PHY register 0x60009b00.
+ * */
+extern void	rom_chip_v5_disable_cca(void);
+
+/* Name: rom_chip_v5_enable_cca
+ * Address: 0x400060ec
+ * Description: enables CCA for WiFi PHY version 5.0.
+ * Unsets bit 28 of PHY register 0x60009b00.
+ * */
+extern void	rom_chip_v5_enable_cca(void);
+
+/* Name: rom_chip_v5_rx_init
+ * Address: 0x4000711c
+ * Description: initialize the receiver (RX) for WiFi PHY version 5.0.
+ * Calls 5 times a phy_write function at offset 152 seen previously with rom_chip_50_set_channel
+ * with various parameters.
+ * */
+extern void	rom_chip_v5_rx_init(void);
+
+/* Name: rom_chip_v5_sense_backoff
+ * Address: 0x4000610c
+ * Description: configures the carrier sense backoff threshold for for WiFi PHY version 5.0.
+ * Basically adjust the sensitivity of the CSMA/CA.
+ * */
+extern void	rom_chip_v5_sense_backoff(s8 backoff_value);
+
+/* Name: rom_chip_v5_tx_init
+ * Address: 0x4000718c
+ * Description: initialize the transmiter (TX) for WiFi PHY version 5.0.
+ * Sets up the transmiter in a similar manner the receiver is initialized.
+ * */
+extern void	rom_chip_v5_tx_init(void);
+
+/* Name: rom_dc_iq_est
+ * Address: 0x4000615c
+ * Description: performs DC offset and IQ imbalance estimation for the receiver.
+ * Note: DC stands for Direct Current.
+ * Note: IQ stands for In-phase and Quadrature.
+ * Note: ADC stands for Analog to Digital Converter.
+ * Used to calibrated the hardware before receiving any signal.
+ * arg0 is used in the PHY function at offset 52 from the function table as the first argument.
+ * results[0] = In-phase channel DC offset.
+ * results[1] = Quadrature channel DC offset.
+ * */
+extern void	rom_dc_iq_est(s32 arg0, s32 samples, s32* results);
+
+/* Name: rom_en_pwdet
+ * Address: 0x400061b8
+ * Description: enables / configure the power detector for the transmiter.
+ * Calls PHY function at offset 76 with mode as a parameter.
+ * Clears bit 21 and 23 of register 0x60000d5c.
+ * mode == 0 disables power detector.
+ * mode == 1 enables power detector.
+ * mode != 0 || mode != 1 just does the setup call and bit clearing.
+ * Mesures of pwdet can be used for:
+ * 	- TX power calibration (actual vs programmed power)
+ * 	- power control (adjust Power Amplifier)
+ * 	- regulatory complience (no excess)
+ * 	- temperature compensation (temperature changes output power)
+ * 	- linearity optimization (avoid PA compression)
+ * */
+extern void	rom_en_pwdet(u32 mode);
+
+/* Name: rom_get_bb_atten
+ * Address: 0x40006238
+ * Description: calculates baseband attenuation needed to reach a target value for the transmiter.
+ * Note: Baseband attenuation controls signal level in the digital domain before the DAC.
+ * Note: DAC stands for	Digital to Analog Converter.
+ * adjustment = (target + 8) - (current * 4)
+ * If adjustment < 0 then adjustment = 0.
+ * If adjustment > 127 then adjustment = 127.
+ * Returns the attenuation adjustment clamped to the range 0-127.
+ * */
+extern s8	rom_get_bb_atten(s16 target, s16 current);
+
+/* Name: rom_get_corr_power
+ * Address: 0x40006260
+ * Description: calculates correlation power metrics from PHY accumulator registers.
+ * Computes signal power, correlation power and DC power for receiver signal quality assessment.
+ * Function typically called during packet reception or channel assessment 
+ * to monitor signal quality and trigger calibration/adjustment if needed.
+ * dc_I >> (shift - 2) read from 0x600005dc
+ * dc_Q >> (shift - 2) read from 0x600005e0
+ * dc_pwr >> (shift - 2) read from 0x600005e4
+ * corr_I = corr_I1 + corr_Q2
+ * corr_Q = corr_Q1 - corr_I2
+ * corr_pwr = ((corr_I)² + (corr_Q)²) >> (shift * 2 - 22)
+ * dc_pwr_offset = (dc_I)² + (dc_Q)²
+ * results[0] = dc_pwr
+ * results[1] = corr_pwr
+ * results[2] = dc_pwr_offset
+ * */
+extern void	rom_get_corr_power(s32* results, u32 shift);
+
+/* Name: rom_get_fm_sar_dout
+ * Address: 0x400062dc
+ * Description: reads FM SAR ADC outputs, processes 8 samples
+ * and computes averaged I/Q values with specific weighting (receiver function).
+ * Note: FM stands for frequence mismatch.
+ * Note: SAR stands for Successive Approximation Register.
+ * Note: CORDIC stands for COordinate Rotation DIgital Computer. Efficiently calculates trigonometric functions, rotations, and magnitude/phase using only shifts and adds (no multipliers).
+ * Note: DFT stands for Discrete Fourier Transform. Converts time-domain samples into frequency-domain components
+ * Read the u32 8 values starting at 0x60000b80 and stores them in a temporary samples[8].
+ * Does some weight calculus so compute the I/Q:
+ * 	- I = samples[2] + (2 * samples[0]) - (3 * (samples[4] + samples[6]))
+ * 	- Q = (2 * (samples[1] + samples[3])) - (samples[4] + samples[6])
+ * The specific weighting pattern (2, 1, 1, -3, -3) for samples
+ * suggests this implements a known frequency estimation algorithm,
+ * possibly related to CORDIC or DFT-based frequency detection.
+ * */
+extern void	rom_get_fm_sar_dout(s16* out_i, s16* out_q);
+
+/* Name: rom_get_noisefloor
+ * Address: 0x40006394
+ * Description: retruns the noisefloor.
+ * Reads value from 0x60009b64 and extract bits 20-31.
+ * Returns (value >> 3) - 512 as a signed value.
+ * */
+extern s16	rom_get_noisefloor(void);
+
+/* Name: rom_get_power_db
+ * Address: 0x400063b0
+ * Description: calculates signal power in dB units by reading correlation power metrics,
+ * converting them to dB scale, and applying an offset correction.
+ * */
+extern s16	rom_get_power_db(s16 offset);
+
 extern void	rom_i2c_writeReg(u8 slave_addr, u8 reg_addr_len, u8 data_len, u32 data);
 
 /* 'STD' FUNCTIONS */
