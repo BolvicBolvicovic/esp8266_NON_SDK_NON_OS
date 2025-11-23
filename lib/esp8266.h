@@ -468,13 +468,42 @@ extern void	ets_write_char(char c);
 
 /* _XTOS FUNCTIONS*/
 
-/* Name: _xtos_set_interrupt_handler_arg
- * Description: called by ets_isr_attach. Set up the interrupt handler.
- * Use only if you want to avoid a function call.
+/* Name: _xtos_alloca_handler
+ * Address: 0x4000dbe0
+ * Description: minimal exception handler stub that is triggered with the alloca instruction.
+ * Directly returns from exception (rfe).
  * */
-extern void	_xtos_set_interrupt_handler_arg(s32 interrupt_nb, void* handler, void* args); 
+extern void	_xtos_alloca_handler(void);
+
+/* Name: _xtos_c_wrapper_handler
+ * Address: 0x40000598
+ * Description: interrupt stub: saves the stack and calls the C handler depending on the cause.
+ * Saves all register in the stack with the following layout but the sp 
+ * (which can be found at frame + 256):
+ struct frame
+ {
+ 	u32	epc1;
+	u32	ps;
+	s32	sar;
+	u32	rsvd0;
+	u32	a0;
+	u32	a[14];
+ };
+ void	interrupt_handler_signature(struct frame* sp, u32 cause);
+ * Reads the cause in a2 which is an index into a handler table at 0x3fffc100.
+ * If handler is exists, calls it with (stack pointer, cause)
+ * Restores SAR jumps to 0x4000dc54 (_xtos_return_from_exc).
+ * */
+extern void	_xtos_c_wrapper_handler(u32 cause);
+
+/* Name: _xtos_cause3_handler
+ * Address: 0x40000590
+ * Description: calls _xtos_c_wrapper_handler with 3 as the parameter.
+ * */
+extern void	_xtos_cause3_handler(void);
 
 /* Name: _xtos_ints_off
+ * Address: 0x4000bda4
  * Description: clear the interrupts flags with the mask by writing to the register at 0x3fffc200.
  * Seems to return something but I don't know what.
  * Called by ets_isr_mask.
@@ -482,11 +511,139 @@ extern void	_xtos_set_interrupt_handler_arg(s32 interrupt_nb, void* handler, voi
 extern void	_xtos_ints_off(u32 mask);
 
 /* Name: _xtos_ints_on
+ * Address: 0x4000bd84
  * Description: sets the interrupts flags with by writing to the register at 0x3fffc200.
  * Seems to return something but I don't know what.
  * Called by ets_isr_unmask.
  * */
 extern void	_xtos_ints_on(u32 mask);
+
+/* Name: _xtos_l1int_handler
+ * Address: 0x4000048c
+ * Description: level 1 interrupt handler. Handles pending enabled interrupts.
+ * Saves CPU context and the current interrupt mask from 0x3fffc204.
+ * Iterates through pending enabled interrupts and dispatching each to its registered handler.
+ * Restores SAR jumps to 0x4000dc54 (_xtos_return_from_exc).
+ * */
+extern void	_xtos_l1int_handler(void);
+
+/* Name: _xtos_p_none
+ * Address: 0x4000dbf8
+ * Description: empty handler (just ret.n).
+ * */
+extern void	_xtos_p_none(void);
+
+/* Name: _xtos_restore_intlevel
+ * Address: 0x4000056c
+ * Description: restores interrupt level by writing to special register ps arg0. 
+ * */
+extern void	_xtos_restore_intlevel(u32 interrupt_level);
+
+/* Name: _xtos_return_from_exc
+ * Address: 0x4000dc54
+ * Description: restores the CPU context.
+ * Restores a0-a15 except a2 and a3.
+ * Restores epc1 with a2 and ps with a3.
+ * Restores a2 and a3.
+ * Restores stack pointer by adding 256 to it.
+ * */
+extern void	_xtos_return_from_exc(void); 
+
+/* Name: _xtos_set_exception_handler
+ * Address: 0x40000454
+ * Description: sets an exception handler.
+ * cause is used as an index in the handler table at 0x3fffc100 and in the vector table at 0x3fffc000.
+ * If handler == 0 then 
+ * 	- uses _xtos_unhandled_exception as the default vector.
+ * 	- uses _xtos_p_none as the default handler.
+ * Else
+ * 	- uses _xtos_c_wrapper_handler as the vector.
+ * 	- uses handler as the handler.
+ * The first argument of the handler is the stack pointer containing the stack frame 
+ * described in the _xtos_c_wrapper_handler comment above.
+ * The second argument of the handler is the cause.
+ * On success: returns the previous handler pointer.
+ * On error (if cause <= 64): returns 0.
+ * */
+extern void*	_xtos_set_exception_handler(u32 cause, void (*handler)(u32* stack_frame, u32 cause);
+
+/* Name: _xtos_set_interrupt_handler
+ * Address: 0x4000bd70
+ * Description: wrapper around _xtos_set_interrupt_handler_arg.
+ * Uses interrupt_nb as argument for the handler.
+ * On success: returns previous handler pointer.
+ * On error (interrupt_nb > 14 
+ * 	|| interrupt_type from 0x3fffd650 + interrupt_nb < 3 
+ * 	|| previous_handler_ptr == _xtos_unhandled_interrupt): returns 0.
+ * */
+extern void*	_xtos_set_interrupt_handler(u32 cause, void (*handler)(u32 _cause));
+
+/* Name: _xtos_set_interrupt_handler_arg
+ * Address: 0x4000bd28
+ * Description: sets up the interrupt handler with an argument in the interrupt table.
+ * at 0x3fffc208 - (interrupt_nb << 3) (grows downward).
+ * Called by ets_isr_attach. 
+ * If handler == 0 then 
+ * 	- uses _xtos_unhandled_interrupt as the default handler.
+ * 	- uses interrupt_nb as the default argument.
+ * Else
+ * 	- uses handler as the handler.
+ * 	- uses arg as the argument.
+ * On success: returns previous handler pointer.
+ * On error (interrupt_nb > 14 
+ * 	|| interrupt_type from 0x3fffd650 + interrupt_nb < 3 
+ * 	|| previous_handler_ptr == _xtos_unhandled_interrupt): returns 0.
+ * */
+extern void*	_xtos_set_interrupt_handler_arg(u32 interrupt_nb, void (*handler)(void*), void* arg); 
+
+/* Name: _xtos_set_intlevel
+ * Address: 0x4000dbfc
+ * Description: sets the interrupt level to new_level.
+ * Masks out new_level to extract the 4 most right bits.
+ * Level 0: all interrupts are enabled.
+ * Level 1-15: Interrupts at level <= current_level are masked.
+ * Returns the previous interrupt level.
+ * */
+extern u32	_xtos_set_intlevel(u32 new_level);
+
+/* Name: _xtos_set_min_intlevel
+ * Address: 0x4000dc18
+ * Description: sets the minimum interrupt level to min_level if the current level is lower.
+ * Returns the previous interrupt level.
+ * */
+extern u32	_xtos_set_min_intlevel(u32 min_level);
+
+/* Name: _xtos_set_vpri
+ * Address: 0x40000574
+ * Description: sets the virtual priority interrupt mask.
+ * Disable interrupts.
+ * Reads previous mask and sets new_mask at 0x3fffc204.
+ * Enables new_mask by ANDing base interrupt enable mask at 0x3fffc200 and writing results to INTENABLE.
+ * Returns the previous mask.
+ * */
+extern u32	_xtos_set_vpri(u32 new_mask);
+
+/* Name: _xtos_syscall_handler
+ * Address: 0x4000dbe4
+ * Description: handles syscalls by treating them as no ops.
+ * Returns from interrupt.
+ * */
+extern void	_xtos_syscall_handler(void);
+
+/* Name: _xtos_unhandled_exception
+ * Address: 0x4000dc44
+ * Description: default vector exception.
+ * Restores registers a2, a3 and sp by adding 256.
+ * Triggers a software breakpoint.
+ * */
+extern void	_xtos_unhandled_exception(void* frame, u32 cause);
+
+/* Name: _xtos_unhandled_interrupt
+ * Address: 0x4000dc3c
+ * Description: default interrupt handler.
+ * Triggers a software breakpoint.
+ * */
+extern void	_xtos_unhandled_interrupt(void* arg);
 
 /* UART FUNCTIONS */
 
