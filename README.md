@@ -41,7 +41,7 @@ esp8266_NON_SDK_NON_OS/
 │   └── main.c                  # User application code
 ├── start.c                     # Basic system initialization
 ├── Makefile                    # Build, flash, and monitor automation
-├── build_toolchain.sh          # Toolchain setup script
+├── build_toolchain.py          # Toolchain setup script
 ├── tests/                      # Tests folder
 └── README.md                   # This file
 ```
@@ -57,8 +57,10 @@ esp8266_NON_SDK_NON_OS/
 
 ### 1. Install Toolchain
 
+*Toolchain script does not exist yet.*
+
 ```bash
-./build_toolchain.sh
+python3 build_toolchain.py
 ```
 
 This script will download and configure the Xtensa toolchain for ESP8266 development.
@@ -77,15 +79,13 @@ make flash
 
 ### 4. Monitor
 
-```bash
-make monitor
-```
-
-Or use a serial terminal:
+Use a serial terminal:
 ```bash
 screen /dev/ttyUSB0 115200
 # or
 minicom -D /dev/ttyUSB0 -b 115200
+# or
+arduino-cli monitor -p /dev/ttyUSB0 -b 115200
 ```
 
 ## Example Usage
