@@ -87,7 +87,8 @@ typedef struct ets_timer_s
 
 /* Name: ets_bzero
  * Address: 0x40002ae8
- * Description: zeros n bytes of array s.
+ * Description: wrapper around bzero.
+ * Zeros n bytes of array s.
  * */
 extern void	ets_bzero(void* s, u32 n);
 
@@ -904,48 +905,186 @@ extern void	rom_i2c_writeReg_Mask(
 
 /* Name: rom_iq_est_disable
  * Address: 0x40006400
- * Description:
+ * Description: disables the iq estimation feature.
+ * Control register is at 0x6000057c.
+ * Reads from register, clears bits with mask 0xfffa0001 and sets bit 12, writes to register,
+ * effectively clearing the previous configuration.
+ * Reads from register, clears bit 0, writes to register, effectively disabling the feature.
  * */
+extern void	rom_iq_est_disable(void);
 
 /* Name: rom_iq_est_enable
  * Address: 0x40006430
+ * Description: enables the iq estimation feature.
+ * Bit 1 is set, effectively enabling the feature.
+ * The two arguments are used to configure the feature by putting them in a command word 
+ * at bits 31-18 and 16-2 but what they are per say is not clear.
+ * */
+extern void	rom_iq_est_enable(u8 arg0, u16 arg1);
+
+/* Name: rom_linear_to_db
+ * Address: 0x40006484
+ * Description: converts a linear power to decibels.
+ * Copies to the stack a table from 0x3fffcbd0.
+ * Normalizes the input using 3 as the threshold before calculating the dB value.
+ * */
+extern s16	rom_linear_to_db(u32 linear_value, u8 scalar);
+
+/* Name: rom_mhz2ieee
+ * Address: 0x400065a4
+ * Description: converts a frequency in MHz to an IEEE 802.11 channel number.
+ * Note: IEEE stands for Institute of Electrical and Electronics Engineers.
+ * IEEE 802.11 is specifically the WiFi ranges standard designed by this institute.
+ * If bit 7 of flags is set (any bandwidth) then:
+ * 	- if freq == 2484 then return 14
+ * 	- if freq > 2483 then return (freq - 5000)) / 20 + 15 (5 GHz channels)
+ * 	- if freq <= 2483 then return (freq - 2407) / 5 (2.4 GHz channels)
+ * Else:
+ * 	- if freq == 2484 then return 14
+ * 	- if freq > 2483 then return -1 (invalid)
+ * 	- if freq <= 2483 then return (freq - 2407) / 5 (2.4 GHz channels)
+ * */
+extern s8	rom_mhz2ieee(u32 freq, u8 flags);
+
+/* Name: rom_pbus_dco___SA2
+ * Address: 0x40007bf0
+ * Description: performs an I2C-based DCO calibration on a peripherical bus device.
+ * Note: DCO stands for Digitally Controlled Oscillator.
+ * The source of configurations comes from the I2C function call located at 0x3fffc730 + 0xb0.
+ * DAC is adjusted with a binary search-like algorithm.
+ * Uses multiple configurations and runs the adjustments 12 times per configuration.
+ * The number of configurations comes from the amount of bits set
+ * in the bit segment 6-2 of the value issued by the source.
+ * Variation in the configurations comes from specific bit patterns (4-2) in the value saved at sp + 84.
+ * Calls eprintf for debug and verbose.
+ * */
+extern void	rom_pbus_dco___SA2(
+		u8 slave_addr, u8 i2c_num, u8 reg_addr, u32 delay_us, bool debug_print, bool verbose);
+
+/* Name: rom_pbus_debugmode
+ * Address: 0x4000737c
+ * Description: conditionaly enables debug mode for the PBUS system.
+ * PBUS stands for peripherical bus.
+ * Waits for the hardware to be ready before enabling the debug mode.
+ * */
+extern void	rom_pbus_debugmode(void);
+
+/* Name: rom_pbus_enter_debugmode
+ * Address: 0x40007410
  * Description:
  * */
 
 /* 'STD' FUNCTIONS */
-extern int	rand(void);
+
+/* Name: bzero
+ * Address: 0x4000de84
+ * Description: zeros n bytes of array s.
+ * */
+extern void	bzero(void* s, u32 n);
+
+/* Name: cmd_parse
+ * Address: 0x40000814
+ * Description: 
+ * */
+
+/* Name: conv_str_decimal
+ * Address: 0x40000b24
+ * Description: converts a string to a decimal value.
+ * */
+extern s32	conv_str_decimal(const char* str);
+
+/* Name: conv_str_hex
+ * Address: 0x40000b24
+ * Description: converts a string to a hexadecimal value.
+ * */
+extern s32	conv_str_hex(const char* str);
+
+/* Name: convert_para_str
+ * Address: 0x40000a60
+ * Description: 
+ * */
+
+/* Name: eprintf
+ * Address: 0x40001d14
+ * Description: 
+ * */
+
+/* Name: eprintf_init_buf
+ * Address: 0x40001cb8
+ * Description:
+ * */
+
+/* Name: eprintf_to_host
+ * Address: 0x40001d48
+ * Description:
+ * */
+
+/* Name: est_get_printf_buf_remain_len
+ * Address: 0x40002494
+ * Description:
+ * */
+
+/* Name: est_reset_printf_buf_len
+ * Address: 0x4000249c
+ * Description:
+ * */
+
+/* Name: rand
+ * Address: 0x40000600
+ * Description: returns a semi-random number.
+ * Takes values at 
+ * 	- a2 = *(0x3fffc6f8 + 168)
+ * 	- a3 = *(0x3fffc6f8 + 172)
+ * Calls __muldi3 with these values.
+ * Updates *(0x3fffc6f8 + 172).
+ * ANDs the result with 0x7fffffff.
+ * */
+extern s32	rand(void);
+
+/* Name: srand
+ * Address: 0x400005f0
+ * Description: seeds the randomizer.
+ * The seed is at 0x3fffc6f8 + 168.
+ * Also sets 0x3fffc6f8 + 172 to 0.
+ * */
 extern void	srand(u32 seed);
 
 /* Name: strcmp
+ * Address: 0x4000bdc8
  * Description: compares two strings.
  * Returns 0 if s1 and s2 are equal, 1 if the different char of s1 > than char of s2 else -1.
  * */
 extern s32	strcmp(const char* s1, const char* s2);
 
 /* Name: strcpy
+ * Address: 0x4000bec8
  * Description: copies string src into string dst.
  * Returns dst.
  * */
 extern char*	strcpy(char* dst, const char* src);
 
 /* Name: strlen
+ * Address: 0x4000bf4c
  * Description: gives the lenght of a string by searching for the '\0' char.
  * */
 extern u32	strlen(const char* s);
 
 /* Name: strncmp
+ * Address: 0x4000bfa8
  * Description: compares n chars of two strings.
  * Returns 0 if s1 and s2 are equal, 1 if the different char of s1 > than char of s2 else -1.
  * */
 extern s32	strncmp(const char* s1, const char* s2, u32 n);	
 
 /* Name: strncpy
+ * Address: 0x4000c0a0
  * Description: copies n chars of string src into string dst.
  * Returns dst.
  * */
 extern char*	strncpy(char* dst, const char* src, u32 n);
 
 /* Name: strstr
+ * Address: 0x4000e1e0
  * Description: search the string needle in the haystack.
  * On success: returns the address of the first char of the needle in the haystack.
  * On error: returns 0.
