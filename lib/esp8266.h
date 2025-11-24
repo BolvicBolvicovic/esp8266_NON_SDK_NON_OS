@@ -868,7 +868,49 @@ extern s16	rom_get_noisefloor(void);
  * */
 extern s16	rom_get_power_db(s16 offset);
 
-extern void	rom_i2c_writeReg(u8 slave_addr, u8 reg_addr_len, u8 data_len, u32 data);
+/* Name: rom_i2c_readReg
+ * Address: 0x40007268
+ * Description: reads a single byte from the I2C register for a slave device.
+ * Note: I2C stands for Inter-Intergrated Circuit. The I2C bus controls all connected devices to the MCU.
+ * Base address of the I2C controller is 0x60000a00 + i2c_num * 4 + 0x300.
+ * u32 command_word = (reg_addr << 8) | slave_addr;
+ * Writes command_word and polls bit 25 of that register until the byte can be read from bits 16-23.
+ * */
+extern u8	rom_i2c_readReg(u8 i2c_num, u8 reg_addr, u8 slave_addr);
+
+/* Name: rom_i2c_readReg_Mask
+ * Address: 0x4000729c
+ * Description: reads bit_length bits from bit_start of the desired I2C register.
+ * Calls a function at 0x3fffc730 + 0x90 that takes the 3 first args as arguments to get the full mask.
+ * Masked extracted value is 8 bits long.
+ * */
+extern u8	rom_i2c_readReg_Mask(u8 i2c_num, u8 reg_addr, u8 slave_addr, u8 bit_start, u8 bit_length);
+
+/* Name: rom_i2c_writeReg
+ * Address: 0x400072d8
+ * Description: writes a single byte to the I2C register for a slave device.
+ * Sets bit 24 of command_word to signify a write command and writes value to bits 16-23.
+ * */
+extern void	rom_i2c_writeReg(u8 slave_addr, u8 i2c_num, u8 reg_addr, u8 value);
+
+/* Name: rom_i2c_writeReg_Mask
+ * Address: 0x4000730c
+ * Description: writes bit_length bits of value from bit_start to the desired I2C register.
+ * Calls a function at 0x3fffc730 + 0x90 that takes the 3 first args as arguments to get the full mask.
+ * Calls a function at 0x3fffc730 + 0x98 to write updated mask.
+ * */
+extern void	rom_i2c_writeReg_Mask(
+		u8 slave_addr, u8 i2c_num, u8 reg_addr, u8 bit_start, u8 bit_length, u8 value); 
+
+/* Name: rom_iq_est_disable
+ * Address: 0x40006400
+ * Description:
+ * */
+
+/* Name: rom_iq_est_enable
+ * Address: 0x40006430
+ * Description:
+ * */
 
 /* 'STD' FUNCTIONS */
 extern int	rand(void);
