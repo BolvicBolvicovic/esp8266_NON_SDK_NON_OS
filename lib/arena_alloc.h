@@ -3,7 +3,19 @@
 
 // TODO: When multitasking will be implemented, maybe make this task-safe
 
+#ifndef USE_MEM_MALLOC
+
 #include "memory.h"
+#define MEM_MALLOC()	memory_allocate_block()
+#define MEM_FREE(a)	memory_free_block((void*)a)
+
+#else
+
+#include "esp8266.h"
+#define MEM_MALLOC()	mem_malloc(0x1000 / 2)
+#define MEM_FREE(a)	mem_free((void*)a)
+
+#endif
 
 #define ALIGN_DOWN_4(a)	((a) & ~3)
 #define ALIGN_UP_4(a)	(((a) + 3) & ~3)
@@ -76,7 +88,7 @@ arena_from_ptr(void* ptr)
 INTERNAL inline Arena* ALWAYS_INLINE_ATTR
 arena_new(void)
 {
-	return arena_from_ptr(memory_allocate_block());
+	return arena_from_ptr(MEM_MALLOC());
 }
 
 INTERNAL inline u8*
@@ -102,7 +114,7 @@ arena_pop(Arena* arena, u32 mark)
 INTERNAL inline s32 ALWAYS_INLINE_ATTR
 arena_delete(Arena* arena)
 {
-	return memory_free_block((void*)arena);
+	return MEM_FREE(arena);
 }
 
 
