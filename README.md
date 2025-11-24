@@ -11,6 +11,7 @@ The ESP8266 contains a significant amount of functionality in its mask ROM, incl
 - **System utilities** - Delay functions, exception handlers, bootloader support
 
 This repository documents these ROM functions and provides a minimal framework for direct ROM-based development.
+The entire documentation and the function signatures are in the <a href="/lib/esp8266.h">esp8266.h</a> file. Which also means that it is a single header file library, making it easy to use.
 
 ## Project Status
 
@@ -52,6 +53,26 @@ esp8266_NON_SDK_NON_OS/
 - **esptool.py** for flashing
 - **Python 3.x**
 - Serial terminal (optional, for monitoring)
+
+## Documentation Instructions
+
+Every documented functions follows this pattern:
+```c
+/* Name: <function name>
+ * Address: <function address in ROM>
+ * Description: <function description>
+ * <more detailed function description>
+ * */
+```
+This pattern facilitates quick lookups to a function's documentation (i.e. in vim, "/Name: \<function name\>").
+It is also possible to find between the Description and the details a series of the following:
+```c
+/* ...
+ * Note: SA stands for Some Abbreviation. Optional short description of the abbreviation.
+ * ...
+ * */
+```
+Meaning that if you do not understand an abbreviation in a function's documentation you can search for that pattern.
 
 ## Quick Start
 
@@ -169,10 +190,7 @@ Contributions are highly encouraged! Ways to help:
 5. **Test on hardware** - Verify functions on different ESP8266 variants
 
 ### Contribution Guidelines
-- Take example on documentation that is already done.
-- Include function signatures with parameter descriptions
-- Add usage examples for complex functions
-- Document register addresses and bit fields
+- Follow the <a href="#documentation-instructions">Documentation Instructions</a>
 - Test on real hardware when possible
 - Use clear, descriptive commit messages
 
