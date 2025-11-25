@@ -963,7 +963,7 @@ extern void	rom_pbus_dco___SA2(
 
 /* Name: rom_pbus_debugmode
  * Address: 0x4000737c
- * Description: conditionaly enables debug mode for the PBUS system.
+ * Description: conditionaly sets up and enables debug mode for the PBUS system.
  * PBUS stands for peripherical bus.
  * Waits for the hardware to be ready before enabling the debug mode.
  * */
@@ -971,6 +971,303 @@ extern void	rom_pbus_debugmode(void);
 
 /* Name: rom_pbus_enter_debugmode
  * Address: 0x40007410
+ * Description: PBUS enters debug mode.
+ * arg is passed onto 3 functions calls from the table at 0x3fffc730 (offsets 0xa0, 0xc0, and 0xd0).
+ * */
+extern void	rom_pbus_enter_debugmode(u32 arg);
+
+/* Name: rom_pbus_exit_debugmode
+ * Address: 0x40007448
+ * Description: PBUS exits debug mode.
+ * Does 3 functions calls from the table at 0x3fffc730 (offsets 0xc8, 0xc4, and 0xbc).
+ * */
+extern void	rom_pbus_exit_debugmode(void);
+
+/* Name: rom_pbus_force_test
+ * Address: 0x4000747c
+ * Description: forces the PBUS to run a test operation.
+ * Builds a control word with the arguments.
+ * Applies control word to register 0x60000594 and waits until the completion of the test
+ * by polling bit 1 of register 0x600005a0.
+ * */
+extern void	rom_pbus_force_test(u32 channel, u32 command, u32 flags);
+
+/* Name: rom_pbus_rd
+ * Address: 0x400074d8
+ * Description: reads a field of a channel of the PBUS
+ * Gets channel byte n with a lookup on table at 0x3fffcce0 using channel_idx
+ * and combines it with the field_idx.
+ * Returns the low 9 bits of the value read at 0x600005a4 + 4 * (n / 3).
+ * */
+extern u16	rom_pbus_rd(u32 channel_idx, u32 field_idx);
+
+/* Name: rom_pbus_set_rxgain
+ * Address: 0x4000754c
+ * Description: sets up the RF receive gain configuration into PBUS.
+ * Note: RF stands for Radio Frequency.
+ * Note: LNA stands for Low-Noise Amplifier.
+ * Note: IF stands for Intermediate Frequency.
+ * Decodes the packed rxgain configuration word into several PBUS registers
+ * controlling LNA/Mixer/IF‑gain, enabling and tuning the receive gain path.
+ * Uses function table at 0x3fffc730 (offsets 0xb0, 0xac).
+ * */
+extern void	rom_pbus_set_rxgain(u16 rxgain);
+
+/* Name: rom_pbus_set_txgain
+ * Address: 0x40007610
+ * Description: sets up the RF transmit gain configuration into PBUS.
+ * Decodes the packed txgain configuration word and writes the corresponding PBUS registers 
+ * that control the transmit gain chain.
+ * Uses the function at 0x3fffc730 + 0xac.
+ * */
+extern void	rom_pbus_set_txgain(u16 txgain);
+
+/* Name: rom_pbus_workmode
+ * Address: 0x40007648
+ * Description: switch off the debug mode bit of the RF/PBUS block back to work mode.
+ * Clears bit 1 in the register at 0x60000594.
+ * Clears bit 27 in the register at 0x60009b08.
+ * Complete transition back to work mode with function call at 0x3fffc730 + 0x78.
+ * */
+extern void	rom_pbus_workmode(void);
+
+/* Name: rom_pbus_xpd_rx_off
+ * Address: 0x40007688
+ * Description: turns off RX XPD for one PBUS block.
+ * Note: XPD might stand for eXternal Power Down or eXecute Power Down.
+ * 3 calls to function at 0x3fffc730 + 0xac with:
+ * 	- (2, 1, arg)
+ * 	- (3, 1, 0)
+ * 	- (3, 2, 0)
+ * */
+extern void	rom_pbus_xpd_rx_off(u16 arg);
+
+/* Name: rom_pbus_xpd_rx_on
+ * Address: 0x400076cc
+ * Description: turns on RX XPD for one PBUS block.
+ * 2 calls to function at 0x3fffc730 + 0xac with:
+ * 	- (2, 1, 388)
+ * 	- (3, 2, 6)
+ * */
+extern void	rom_pbus_xpd_rx_on(void);
+
+/* Name: rom_pbus_xpd_tx_off
+ * Address: 0x400076fc
+ * Description: turns off TX XPD for one PBUS block.
+ * 3 calls to function at 0x3fffc730 + 0xac with:
+ * 	- (6, 1, 0)
+ * 	- (1, 1 ,12)
+ * 	- (2, 1, 0)
+ * */
+extern void	rom_pbus_xpd_tx_off(void);
+
+/* Name: rom_pbus_xpd_tx_on
+ * Address: 0x40007740
+ * Description: turns on TX XPD for one PBUS block.
+ * 5 calls to function at 0x3fffc730 + 0xac with:
+ * 	- (2, 1, 1)
+ * 	- (7, 1, 0x5f)
+ * 	- (0, 1, arg)
+ * 	- (1, 1, 0x7f)
+ * 	- (6, 1, 0x7f)
+ * */
+extern void	rom_pbus_xpd_tx_on(u16 arg);
+
+/* Name: rom_pbus_xpd_tx_on__low_gain
+ * Address: 0x400077a0
+ * Description: variant of rom_pbus_xpd_tx_on that enbles the low-gain functionality.
+ * Does the same 5 calls to function at 0x3fffc730 + 0xac as rom_pbus_xpd_tx_on
+ * and adds a 6th call after the second one with (7, 1, 0).
+ * */
+extern void	rom_pbus_xpd_tx_on__low_gain(u16 arg);
+
+/* Name: rom_phy_reset_req
+ * Address: 0x40007804
+ * Description: clears the reset request related bits of a PHY register 
+ * at 0x60000600 + 0x110 with mask 0xc3ffffff.
+ * */
+extern void	rom_phy_reset_req(void);
+
+/* Name: rom_restart_cal
+ * Address: 0x4000781c
+ * Description: restarts the RF PHY calibration procedure.
+ * 3 calls to function at 0x3fffc730 + 0x98 with:
+ * 	- (98, 1, 0, 0x5f)
+ * 	- (98, 1, 0, 0x7f)
+ * 	- (98, 1, 0, 0x3f)
+ * */
+extern void	rom_restart_cal(void);
+
+/* Name: rom_rfcal_pwrctrl
+ * Address: 0x40007eb4
+ * Description: does the RF calibration of the transmit power control path.
+ * Execute the calibration in debug mode.
+ * For each entry of input_table (meaning, input_count):
+ * 	- Programs some PA / TX‑power–related setting via ROM helpers and PBUS.
+ * 	- Measures a corresponding RF result using measurement functions from table at 0x3fffc730
+ * 		([[+0x2c]], [[+0x50]], [[+0x68]] etc.).
+ *	- Compares / adjusts vs. a reference and repeats a few times if needed.
+ *	- Writes per‑entry results or status bytes to an output buffer you provide.
+ * Note that the input_table and the output_table must be of the same size.
+ * */
+extern void	rom_rfcal_pwrctrl(
+		u32 rf_context, const u8* input_table, u32 input_count, s32 reference,
+		u32 calibration_idx, u8* output_table);
+
+/* Name: rom_rfcal_rxiq
+ * Address: 0x4000804c
+ * Description: calculates the RF receive I/Q calibration and yields the correction values.
+ * Stores result in:
+ * 	- output_iq[0] = i_correction;
+ * 	- output_iq[1] = q_correction;
+ * */
+extern void	rom_rfcal_rxiq(
+		u32 rf_context, u32 cfg1, u32 cfg2, u8* output_iq, u32 setup_word, u32 aux);
+
+/* Name: rom_rfcal_rxiq_set_reg
+ * Address: 0x40008264
+ * Description: sets RF receive IQ correction register(s) for one IQ correction value.
+ * Bounds the value between -31 included and 31 included.
+ * Returns the final saturated correction code.
+ * 2 modes:
+ * 	- 0: correction is coarse (splits correction and uses different register fields).
+ * 	- 1: correction is fine (uses a single register field).
+ * If mask != 0 then mask is used with instructions bnone/bany effectively controlling the value's sign.
+ * If mask == 0 then no hardware write.
+ * */
+extern s32	rom_rfcal_rxiq_set_reg(s32 input_correction, u8* status_output, u32 mode, u32 mask);
+
+/* Name: rom_rfcal_txcap
+ * Address: 0x40008388
+ * Description: conditionally does a 3-stage search for the best RF transmit capacitance settings,
+ * stores them and (re)apply them.
+ * If word pointed by rf_cfg has capacitor calibrated bit set (18):
+ * 	- the calibration word must be stored in cap_word before the function call.
+ * 	- fast-path: routine just resores TX-CAP trims from that calibration word.
+ * Else performs the TX capacitor calibration, stores it in cap_word and then run the restore routine.
+ * Each stage scans 0 to N TX capacitor codes and looks for the code that produces 
+ * the largest measurement response (strongest signal or best match).
+ * Marks rf_cfg as calibrated by ORing *rf_cfg with 0x00040000, setting bit 18.
+ * */
+extern void	rom_rfcal_txcap(
+		u32* rf_cfg, u32* cap_word, u32 cap_index, u32 ctx,
+		u32 measurement_cfg, u32 measurement_delay);
+
+/* Name: rom_rfcal_txiq
+ * Address: 0x40008610
+ * Description: conditionally calibrate the RF transmit IQ imbalance.
+ * If IQ calibrated bit is set (17) take the fast-path with the calibration word in txiq_word.
+ * Else 
+ * */
+extern void	rom_rfcal_txiq(
+		u32* rf_cfg, u16* txiq_word, u32 chan_index, u32 ctx,
+		u32 measurement_cfg, u32 measurement_delay);
+
+/* Name: rom_rfcal_txiq_cover
+ * Address: 0x400088b8
+ * Description: wrapper around rom_rfcal_txiq. Adds a layer of test / coverage / refinement.
+ * Returns a signed correction.
+ * */
+extern s8	rom_rfcal_txiq_cover(u8 idx, u32 cfg, u8 mode, u32 pattern, bool verbose, u8 count);
+
+/* Name: rom_rfcal_txiq_set_reg
+ * Address: 0x40008a70
+ * Description: sets the appropriate RF transmit IQ fields via 0x3fffc730 + 0x9c.
+ * Returns the final applied correction after saturation and possible sign flip.
+ * */
+extern s32	rom_rfcal_txiq_set_reg(s32 correction, s32 fine, u32 mask);
+
+/* Name: rom_rfpll_reset
+ * Address: 0x40007868
+ * Description: resets the RF PLL.
+ * Note: PLL stands for Phase-Locked Loop. An electronic control system that locks a VCO
+ * to a reference clock. In RF chips, it generates the precise LO frequency used for transmit and receive.
+ * Note: VCO stands for Voltage-Controlled Oscillator.
+ * Note: LO stands for Local Oscillator.
+ * 5 calls to 0x3fffc730 + 0x98:
+ * 	- (98, 1, 10, 0xa6)
+ * 	- (98, 1, 10, 0xa7)
+ * 	- (98, 1, 10, 0xa5)
+ * 	- (99, 0,  1, 0xf3)
+ * 	- (98, 1, 11, 0xc0)
+ * */
+extern void	rom_rfpll_reset(void);
+
+/* Name: rom_rfpll_set_freq
+ * Address: 0x40007968
+ * Description: sets the RF PLL to the desired frequency.
+ * Writes normalized fixed-point fraction to the 3-bytes output buffer and into PLL registers.
+ * */
+extern void	rom_rfpll_set_freq(u32 whole_freq, u32 mode, u32 frac_high_bit, u8* output);
+
+/* Name: rom_rxiq_cover_mg_mp
+ * Address: 0x40008b6c
+ * Description: coverage / refinement helper for the RF receive IQ.
+ * Note: MG/MP stands for Multi-Gain/Multi-Phase refinement.
+ * Runs the receive IQ measurement engine 0x3fffc730 (offsets: 0xF8, 0x48, 0x30, 0x34).
+ * Applies some processing to the measured IQ deltas.
+ * Writes the I and Q result to their respective buffer.
+ * */
+extern void	rom_rxiq_cover_mg_mp(
+		u32 shift, u32 cfg, u32 gain_idx, u8 ref_q, u8 ref_i, s8* out_i, s8* out_q);
+
+/* Name: rom_rxiq_get_mis
+ * Address: 0x40006628
+ * Description: computes the receive IQ mismatch.
+ * shift is reduced by 2 and used as the barrel‑shifter amount for four MAC registers.
+ * Writes results to the 2 bytes out_buffer:
+ * 	- out_buffer[0] = normalized cross‑component (phase/quadrature error)
+ * 	- out_buffer[1] = normalized in‑phase/amplitude/gain error
+ * */
+extern void	rom_rxiq_get_mis(
+		s32 shift, s32 debug_flag, s32 debug_mask,
+		s8 ref_i, s8 ref_q, u8* out_buffer, bool verbose);
+
+/* Name: rom_sar_init
+ * Address: 0x40006738
+ * Description: initialize the SAR ADC block through one MMIO write and two PBUS/RF configuration writes.
+ * Note: MMIO stands for Memory-Mapped Input/Output, essentially
+ * some mapped hardware control/status register.
+ * */
+extern void	rom_sar_init(void);
+
+/* Name: rom_set_ana_inf_tx_scale
+ * Address: 0x4000678c
+ * Description:
+ * */
+
+/* Name: rom_set_channel_freq
+ * Address: 0x40006c50
+ * Description:
+ * */
+
+/* Name: rom_set_loopback_gain
+ * Address: 0x400067c8
+ * Description:
+ * */
+
+/* Name: rom_set_noise_floor
+ * Address: 0x40006830
+ * Description:
+ * */
+
+/* Name: rom_set_rxclk_en
+ * Address: 0x40006550
+ * Description:
+ * */
+
+/* Name: rom_set_txbb_atten
+ * Address: 0x40008c6c
+ * Description:
+ * */
+
+/* Name: rom_set_txclk_en
+ * Address: 0x4000650c
+ * Description:
+ * */
+
+/* Name: rom_set_txiq_cal
+ * Address: 0x40008d34
  * Description:
  * */
 
@@ -1048,6 +1345,11 @@ extern s32	rand(void);
  * Also sets 0x3fffc6f8 + 172 to 0.
  * */
 extern void	srand(u32 seed);
+
+/* Name: roundup2
+ * Address: roundup2
+ * Description:
+ * */
 
 /* Name: strcmp
  * Address: 0x4000bdc8
