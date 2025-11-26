@@ -963,7 +963,7 @@ extern void	rom_pbus_dco___SA2(
 
 /* Name: rom_pbus_debugmode
  * Address: 0x4000737c
- * Description: conditionaly sets up and enables debug mode for the PBUS system.
+ * Description: conditionally sets up and enables debug mode for the PBUS system.
  * PBUS stands for peripherical bus.
  * Waits for the hardware to be ready before enabling the debug mode.
  * */
@@ -1233,42 +1233,112 @@ extern void	rom_sar_init(void);
 
 /* Name: rom_set_ana_inf_tx_scale
  * Address: 0x4000678c
- * Description:
+ * Description: sets the analog interface transmit scaling (TX gain/scale).
+ * Wrapper around 0x3fffc730 + 0x9c.
+ * Returns the conditionally updated scale.
  * */
+extern u32	rom_set_ana_inf_tx_scale(u32 scale);
 
 /* Name: rom_set_channel_freq
  * Address: 0x40006c50
- * Description:
+ * Description: sets an RF channel frequency and related analog/RF parameters.
+ * Returns a defined status/ID constant for this channel.
  * */
+extern u32	rom_set_channel_freq(
+		u32 channel, void* ctx, u16* channel_table, u32* mask_reg,
+		u32* channel_cfg_table, u32 delay_us);
 
 /* Name: rom_set_loopback_gain
  * Address: 0x400067c8
- * Description:
+ * Description: sets the loopback gain.
+ * 5 calls to 0x3fffc730 + 0xac:
+ * 	- (2, 1, 389)
+ * 	- (7, 1, gain0)
+ * 	- (2, 1, gain1)
+ * 	- (3, 1, gain2)
+ * 	- (3, 2, gain3)
  * */
+extern void	rom_set_loopback_gain(u32 gain0, u32 gain1, u32 gain2, u32 gain3);
 
 /* Name: rom_set_noise_floor
  * Address: 0x40006830
- * Description:
+ * Description: sets the RF background noise for thresholds.
  * */
+extern void	rom_set_noise_floor(u32 noise_floor);
 
 /* Name: rom_set_rxclk_en
  * Address: 0x40006550
- * Description:
+ * Description: sets the receive clock enable.
+ * 2 calls to 0x3fffc730 + 0x9c:
+ * 	- (119, 0, 28, 5, 5, enable)
+ * 	- (124, 1, 21, 1, 1, enable)
  * */
+extern void	rom_set_rxclk_en(bool enable);
 
 /* Name: rom_set_txbb_atten
  * Address: 0x40008c6c
- * Description:
+ * Description: sets the transmit BB attenuation table.
+ * Note: BB stands for BaseBand.
+ * Builds a 24‑entry TX baseband attenuation table based on a base_table
+ * and a primary_atten_table, using a different scheme for the first 8 and later entries.
+ * Writes each entry into an 8‑bit field of hardware registers 0x60000200 + 0x304.
  * */
+extern void	rom_set_txbb_atten(
+		const u8* base_table, u32 table_len,
+		const u8* primary_atten_table, const u8* comparaison_table, bool debug);
 
 /* Name: rom_set_txclk_en
  * Address: 0x4000650c
- * Description:
+ * Description: sets the RF transmit clock enable.
+ * 2 calls to 0x3fffc730 + 0x9c:
+ * 	- (119, 0, 28, 6, 6, enable)
+ * 	- (119, 1, 21, 0, 0, enable)
  * */
+extern void	rom_set_txclk_en(bool enable);
 
 /* Name: rom_set_txiq_cal
  * Address: 0x40008d34
- * Description:
+ * Description: sets the transmit IQ calibration into RF/analog hardware registers.
+ * Gets calibration from 0x60009600 + 0x260.
+ * 2 calls to 0x3fffc730 + 0x9c:
+ * 	- (119, 0, 16, 0, 0, *txiq_magnitude_flag)
+ * 	- (119, 0, 16, 6, 6, *txiq_phase_flag)
+ * */
+extern void	rom_set_txiq_cal(u8* txiq_magnitude_flag, u8* txiq_phase_flag);
+
+/* Name: rom_start_noisefloor
+ * Address: 0x40006874
+ * Description: 
+ * */
+
+/* Name: rom_start_tx_tone
+ * Address: 0x400068b4
+ * Description: 
+ * */
+
+/* Name: rom_stop_tx_tone
+ * Address: 0x4000698c
+ * Description: 
+ * */
+
+/* Name: rom_tx_mac_disable
+ * Address: 0x40006a98
+ * Description: 
+ * */
+
+/* Name: rom_tx_mac_enable
+ * Address: 0x40006ad4
+ * Description: 
+ * */
+
+/* Name: rom_txtone_linear_pwr
+ * Address: 0x40006a1c
+ * Description: 
+ * */
+
+/* Name: rom_write_rfpll_sdm
+ * Address: 0x400078dc
+ * Description: 
  * */
 
 /* 'STD' FUNCTIONS */
