@@ -1308,38 +1308,76 @@ extern void	rom_set_txiq_cal(u8* txiq_magnitude_flag, u8* txiq_phase_flag);
 
 /* Name: rom_start_noisefloor
  * Address: 0x40006874
- * Description: 
+ * Description: starts a noisefloor measurement / enables the noise-floor block. Unsure.
+ * Low 3 bits of mode select some noise-floor mode / index.
+ * Updates register 0x60009a00 + 0x164 with & 0xfffff000 | 3 low bits from mode | 0x1a0.
+ * Updates register 0x60009a00 + 0x160 with | 0x28002.
  * */
+extern void	rom_start_noisefloor(u32 mode);
 
 /* Name: rom_start_tx_tone
  * Address: 0x400068b4
- * Description: 
+ * Description: enables transmit tone subsystem.
+ * Arguments are used to build control words to update registers.
+ * Updates register 0x60000200 at offsets:
+ * 	- 0x3b8 with tone0, cfg0, amp0. 
+ * 	- 0x3bc with tone1, cfg1, amp1.
+ * 	- 0x3c4 with tone2, freq2, amp2.
  * */
+extern void	rom_start_tx_tone(
+		u32 tone0, u32 cfg0, u8 amp0,
+		u32 tone1, u32 cfg1, u8 amp1,
+		u8  tone2, u16 freq2, u8 amp2);
 
 /* Name: rom_stop_tx_tone
  * Address: 0x4000698c
- * Description: 
+ * Description: stops a selected transmit tone.
+ * enum
+ * {
+ *	TX_TONE_ALL	= 0,
+ *	TX_TONE_0	= 1,
+ *	TX_TONE_1	= 2,
+ *	TX_TONE_2	= 3,
+ * }
  * */
+extern void	rom_stop_tx_tone(u32 tone);
 
 /* Name: rom_tx_mac_disable
  * Address: 0x40006a98
- * Description: 
+ * Description: disables the transmit MAC in the WiFi MAC/BB block.
+ * Note: MAC stands for Media Access Control.
+ * Hardware base: 0x3ff20de0
+ * Updates at offsets:
+ * 	- 0x3e0
+ * 	- 0x294
  * */
+extern void	rom_tx_mac_disable(void);
 
 /* Name: rom_tx_mac_enable
  * Address: 0x40006ad4
- * Description: 
+ * Description: enables the transmit MAC in the WiFi MAC/BB block.
  * */
+extern void	rom_tx_mac_enable(void);
 
 /* Name: rom_txtone_linear_pwr
  * Address: 0x40006a1c
- * Description: 
+ * Description: computes a linear power of the transmit tone by iteratively reading,
+ * processing and accumulating some metric of samples.
  * */
+extern u16	rom_txtone_linear_pwr(u8 count, u8 shift);
 
 /* Name: rom_write_rfpll_sdm
  * Address: 0x400078dc
- * Description: 
+ * Description: writes a 3-byte value into the RF PLL's SDM control.
+ * Note: SDM stands for sigma-delta modulator. Used for fractional-N division.
+ * 5 calls to 0x3fffc730 + 0x98:
+ * 	- (99, 0, 0, 7)
+ * 	- (99, 0, 3, sdm[0])
+ * 	- (99, 0, 4, sdm[1])
+ * 	- (99, 0, 5, sdm[2])
+ * 	- (99, 0, 0, 23)
  * */
+extern void	rom_write_rfpll_sdm(const u8* sdm);
 
 /* 'STD' FUNCTIONS */
 

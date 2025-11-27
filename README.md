@@ -23,6 +23,7 @@ Currently documenting and reverse-engineering ROM functions. Contributions welco
 - ETS Espressif's internal library (`ets_*` functions)
 - Memory management functions (`mem*` functions)
 - Exception/interrupt handlers (`_xtos_*` functions)
+- ROM functions / hardware handlers (`rom_*` functions)
 
 ### In Progress
 - Complete ROM function header file
