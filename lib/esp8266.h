@@ -648,12 +648,38 @@ extern void	_xtos_unhandled_interrupt(void* arg);
 
 /* UART FUNCTIONS */
 
+/*
+PROVIDE ( UartConnCheck = 0x40003230 );
+PROVIDE ( UartConnectProc = 0x400037a0 );
+PROVIDE ( UartDwnLdProc = 0x40003368 );
+PROVIDE ( UartGetCmdLn = 0x40003ef4 );
+PROVIDE ( UartRegReadProc = 0x4000381c );
+PROVIDE ( UartRegWriteProc = 0x400037ac );
+PROVIDE ( UartRxString = 0x40003c30 );
+PROVIDE ( Uart_Init = 0x40003a14 );
+PROVIDE ( uartAttach = 0x4000383c );
+PROVIDE ( uart_baudrate_detect = 0x40003924 );
+PROVIDE ( uart_buff_switch = 0x400038a4 );
+PROVIDE ( uart_div_modify = 0x400039d8 );
+PROVIDE ( uart_rx_intr_handler = 0x40003bbc );
+PROVIDE ( uart_rx_one_char = 0x40003b8c );
+PROVIDE ( uart_rx_one_char_block = 0x40003b64 );
+PROVIDE ( uart_rx_readbuff = 0x40003ec8 );
+PROVIDE ( uart_tx_one_char = 0x40003b30 );
+ * */
+
+/* Name: uart_div_modify
+ * Address: 0x400039d8
+ * Description:
+ * */
+extern void	uart_div_modify(u8 uart, u32 div);
+
 /* Name: uart_tx_one_char
+ * Address: 0x40003b30
  * Description: sends a byte over the active debug UART.
  * Seems to find which UART is active by looking if the flag of register 0xfffde50 is set to 1 or not.
  * */
 extern void	uart_tx_one_char(u8 c);
-extern void	uart_div_modify(u8 uart, u32 div);
 
 /* ROM TABLES */
 
